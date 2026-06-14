@@ -151,10 +151,11 @@ class ChatService:
         full: list[str] = []
         pt = ct = 0
         for chunk in chunks:
-            delta = chunk.choices[0].delta.content or ""
-            if delta:
-                full.append(delta)
-                yield delta
+            if chunk.choices:
+                delta = chunk.choices[0].delta.content or ""
+                if delta:
+                    full.append(delta)
+                    yield delta
             if hasattr(chunk, "usage") and chunk.usage:
                 pt = chunk.usage.prompt_tokens or 0
                 ct = chunk.usage.completion_tokens or 0

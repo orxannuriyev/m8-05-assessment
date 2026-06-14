@@ -19,13 +19,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ═══════ BASE ═══════ */
-html, body,
-[data-testid="stAppViewContainer"],
-[data-testid="stAppViewContainer"] > .main {
-    font-family: 'Inter', -apple-system, sans-serif !important;
-    background: #F0F7FF !important;
-    color: #0F172A !important;
-}
 .main .block-container {
     background: transparent !important;
     max-width: 900px !important;
@@ -33,65 +26,19 @@ html, body,
     padding: 1.5rem 2rem 8rem !important;
 }
 
-/* Header — always visible so sidebar toggle works */
-[data-testid="stHeader"] {
-    background: rgba(240,247,255,0.95) !important;
-    backdrop-filter: blur(8px) !important;
-    border-bottom: 1px solid #DBEAFE !important;
-    z-index: 999 !important;
-}
-/* Hide only the dev toolbar */
-[data-testid="stToolbar"] { display: none !important; }
-[data-testid="stStatusWidget"] { display: none !important; }
 
-/* Fix sidebar collapse button */
-button[data-testid="stSidebarCollapseButton"],
-button[data-testid="stSidebarCollapsedControl"] {
-    background: #FFFFFF !important;
-    border: 1px solid #DBEAFE !important;
-    border-radius: 8px !important;
-    width: 2rem !important;
-    height: 2rem !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    box-shadow: 0 1px 4px rgba(59,130,246,0.1) !important;
-}
-button[data-testid="stSidebarCollapseButton"] > *:not(svg),
-button[data-testid="stSidebarCollapsedControl"] > *:not(svg) {
-    display: none !important;
-}
-button[data-testid="stSidebarCollapseButton"] svg,
-button[data-testid="stSidebarCollapsedControl"] svg {
-    fill: #3B82F6 !important;
-    width: 1rem !important;
-    height: 1rem !important;
-    flex-shrink: 0 !important;
-}
-button[data-testid="stSidebarCollapseButton"]:hover,
-button[data-testid="stSidebarCollapsedControl"]:hover {
-    background: #EFF6FF !important;
-    border-color: #3B82F6 !important;
-}
+
 
 /* ═══════ SIDEBAR ═══════ */
-section[data-testid="stSidebar"] {
-    background: #FFFFFF !important;
-    border-right: 1px solid #DBEAFE !important;
-}
 section[data-testid="stSidebar"] > div:first-child {
     padding: 1.25rem 1rem !important;
 }
 section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label {
     color: #475569 !important;
     font-family: 'Inter', sans-serif !important;
 }
-section[data-testid="stSidebar"] div {
+section[data-testid="stSidebar"] [data-testid] {
     color: #334155 !important;
 }
 
@@ -351,7 +298,7 @@ with st.sidebar:
 
     # Model
     st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0 0 6px">Model</p>', unsafe_allow_html=True)
-    model_choice = st.selectbox("Model", ["qwen2.5:0.5b", "phi3:latest"], index=0, label_visibility="collapsed")
+    model_choice = st.selectbox("Model", ["qwen2.5:0.5b", "codellama:7b", "phi3:latest"], index=0, label_visibility="collapsed")
 
     # Temperature
     st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0.75rem 0 6px">Temperature</p>', unsafe_allow_html=True)
@@ -385,6 +332,7 @@ with st.sidebar:
 if "service" not in st.session_state or st.session_state.get("_model") != model_choice:
     st.session_state.service = ChatService(model=model_choice, temperature=temperature)
     st.session_state._model = model_choice
+    st.session_state.messages = []
 
 if "messages" not in st.session_state:
     st.session_state.messages = []

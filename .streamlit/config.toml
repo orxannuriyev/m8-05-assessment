@@ -1,16 +1,7 @@
 [theme]
-base = "dark"
-primaryColor = "#58a6ff"
-backgroundColor = "#0d1117"
-secondaryBackgroundColor = "#161b22"
-textColor = "#e6edf3"
-
-[client]
-toolbarMode = "minimal"
-showSidebarNavigation = false
-
-[browser]
-gatherUsageStats = false
-
-[server]
-runOnSave = false
+base="light"
+primaryColor="#3B82F6"
+backgroundColor="#F0F7FF"
+secondaryBackgroundColor="#F1F5F9"
+textColor="#0F172A"
+font="sans serif"
