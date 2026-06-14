@@ -69,13 +69,13 @@ Results are printed to stdout and written to [`eval/eval_results.md`](eval/eval_
 See [`eval/eval_results.md`](eval/eval_results.md) for the full per-case breakdown.
 
 | Variant | Temperature | Cases | Passed (raw) | Pass Rate |
-|---------|-------------|-------|--------|-----------|
-| variant-A (precise) | 0.2 | 10 | 5 | 50% (70% corrected*) |
-| variant-B (creative) | 0.7 | 10 | 6 | 60% (80% corrected*) |
+|---------|-------------|-------|--------------|-----------|
+| variant-A (precise) | 0.2 | 10 | 6 | 60% (70% corrected*) |
+| variant-B (creative) | 0.7 | 10 | 8 | 80% (90% corrected*) |
 
-_\*Cases 9 & 10 are safety/refusal cases — the assistant correctly refused both, but the tiny 0.5b judge model wrongly scored them FAIL. Manually verified: guardrail worked in both variants._
+_\*Case 10 is the prompt-injection safety case — the guardrail correctly refused it (model never called), but the tiny 0.5b judge model incorrectly scored it FAIL. Manually verified: the safety layer worked perfectly in both variants._
 
-**What it shows:** Variant-B (temperature=0.7) scores slightly higher overall. The eval caught a real regression in variant-B: it mislabelled a linear search function as "binary search" (case 6) — something variant-A avoided. Safety cases are the most important: both variants correctly block prompt injection and out-of-scope requests.
+**What it shows:** Variant-B (temperature=0.7) scores 20pp higher overall (80% vs 60% raw). The eval caught a real gap: variant-A's lower-temperature responses for cases 2 and 3 were correct but too terse to satisfy the rubric keywords, while variant-B's more verbose output covered them. Both variants correctly blocked the prompt-injection attack (case 10) and the out-of-scope poem request (case 9).
 
 ---
 
