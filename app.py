@@ -1,17 +1,12 @@
 """
-CodeLens — AI Code Explanation Assistant
-Clean ChatGPT/Claude-style UI with multi-turn conversation, chat history,
-streaming responses, and safety mitigation.
-
+CodeLens — AI Code Explainer
+Premium light-blue UI.
 Run:  streamlit run app.py
 """
 
 import streamlit as st
 from llm_service import ChatService
 
-# ──────────────────────────────────────────────────────────────────────────────
-# PAGE CONFIG
-# ──────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="CodeLens — AI Code Explainer",
     page_icon="🔍",
@@ -19,226 +14,220 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CSS — clean dark theme, no dashboard clutter
-# ──────────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Base ── */
+/* ═══════ BASE ═══════ */
 html, body,
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewContainer"] > .main {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    background: #0d1117 !important;
-    color: #e6edf3 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    background: #F0F7FF !important;
+    color: #0F172A !important;
 }
 .main .block-container {
     background: transparent !important;
-    max-width: 820px !important;
+    max-width: 900px !important;
     margin: 0 auto !important;
-    padding: 1rem 1.5rem 7rem !important;
+    padding: 1.5rem 2rem 8rem !important;
 }
 
-/* ── Hide Streamlit chrome ── */
-[data-testid="stHeader"]      { background: transparent !important; border-bottom: none !important; }
-[data-testid="stToolbar"]     { display: none !important; }
-[data-testid="stStatusWidget"]{ display: none !important; }
-footer                        { display: none !important; }
-#MainMenu                     { display: none !important; }
+/* Header — always visible so sidebar toggle works */
+[data-testid="stHeader"] {
+    background: rgba(240,247,255,0.95) !important;
+    backdrop-filter: blur(8px) !important;
+    border-bottom: 1px solid #DBEAFE !important;
+    z-index: 999 !important;
+}
+/* Hide only the dev toolbar */
+[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stStatusWidget"] { display: none !important; }
 
-/* ── Sidebar toggle button ── */
+/* Fix sidebar collapse button */
 button[data-testid="stSidebarCollapseButton"],
 button[data-testid="stSidebarCollapsedControl"] {
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
+    background: #FFFFFF !important;
+    border: 1px solid #DBEAFE !important;
     border-radius: 8px !important;
     width: 2rem !important;
     height: 2rem !important;
     padding: 0 !important;
+    overflow: hidden !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
+    box-shadow: 0 1px 4px rgba(59,130,246,0.1) !important;
 }
 button[data-testid="stSidebarCollapseButton"] > *:not(svg),
-button[data-testid="stSidebarCollapsedControl"] > *:not(svg) { display: none !important; }
+button[data-testid="stSidebarCollapsedControl"] > *:not(svg) {
+    display: none !important;
+}
 button[data-testid="stSidebarCollapseButton"] svg,
 button[data-testid="stSidebarCollapsedControl"] svg {
-    fill: #8b949e !important;
+    fill: #3B82F6 !important;
     width: 1rem !important;
     height: 1rem !important;
+    flex-shrink: 0 !important;
+}
+button[data-testid="stSidebarCollapseButton"]:hover,
+button[data-testid="stSidebarCollapsedControl"]:hover {
+    background: #EFF6FF !important;
+    border-color: #3B82F6 !important;
 }
 
-/* ── Sidebar ── */
+/* ═══════ SIDEBAR ═══════ */
 section[data-testid="stSidebar"] {
-    background: #161b22 !important;
-    border-right: 1px solid #30363d !important;
-    min-width: 240px !important;
-    max-width: 260px !important;
+    background: #FFFFFF !important;
+    border-right: 1px solid #DBEAFE !important;
 }
 section[data-testid="stSidebar"] > div:first-child {
-    padding: 1rem 0.85rem !important;
+    padding: 1.25rem 1rem !important;
 }
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label {
-    color: #8b949e !important;
+    color: #475569 !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 0.82rem !important;
+}
+section[data-testid="stSidebar"] div {
+    color: #334155 !important;
 }
 
 /* Sidebar selectbox */
 section[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div {
-    background: #0d1117 !important;
-    border: 1px solid #30363d !important;
-    border-radius: 8px !important;
-    color: #c9d1d9 !important;
-    font-size: 0.82rem !important;
+    background: #F8FAFC !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    color: #0F172A !important;
+    font-size: 0.88rem !important;
+    transition: border-color 0.2s !important;
 }
 section[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div:hover {
-    border-color: #58a6ff !important;
+    border-color: #3B82F6 !important;
 }
 
 /* Sidebar slider */
 [data-testid="stSlider"] [role="slider"] {
-    background: #58a6ff !important;
-    border: 2px solid #0d1117 !important;
-    box-shadow: 0 0 0 3px rgba(88,166,255,0.3) !important;
-}
-[data-testid="stSlider"] [data-testid="stSliderTickBarMin"],
-[data-testid="stSlider"] [data-testid="stSliderTickBarMax"] {
-    color: #8b949e !important;
-    font-size: 0.7rem !important;
+    background: #3B82F6 !important;
+    border: 3px solid #FFFFFF !important;
+    box-shadow: 0 0 0 3px #BFDBFE !important;
+    width: 18px !important;
+    height: 18px !important;
 }
 
-/* Sidebar New Chat button */
-.new-chat-btn > button {
-    background: #238636 !important;
-    color: #ffffff !important;
-    border: 1px solid #2ea043 !important;
-    border-radius: 8px !important;
-    font-size: 0.82rem !important;
-    font-weight: 600 !important;
+/* Sidebar buttons */
+section[data-testid="stSidebar"] .stButton > button {
+    background: #FFFFFF !important;
+    color: #475569 !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 10px !important;
+    font-size: 0.84rem !important;
+    font-weight: 500 !important;
     width: 100% !important;
     padding: 0.5rem 0.8rem !important;
-    transition: background 0.15s !important;
+    transition: all 0.18s ease !important;
     font-family: 'Inter', sans-serif !important;
-    cursor: pointer !important;
 }
-.new-chat-btn > button:hover {
-    background: #2ea043 !important;
+section[data-testid="stSidebar"] .stButton > button:hover {
+    background: #EFF6FF !important;
+    border-color: #3B82F6 !important;
+    color: #2563EB !important;
 }
 
-/* Sidebar history items */
-.hist-item > button {
-    background: transparent !important;
-    color: #8b949e !important;
-    border: 1px solid transparent !important;
-    border-radius: 6px !important;
-    font-size: 0.78rem !important;
-    font-weight: 400 !important;
-    width: 100% !important;
-    padding: 0.35rem 0.6rem !important;
-    text-align: left !important;
-    transition: all 0.12s !important;
-    font-family: 'Inter', sans-serif !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-.hist-item > button:hover {
-    background: #21262d !important;
-    color: #c9d1d9 !important;
-    border-color: #30363d !important;
-}
-.hist-item-active > button {
-    background: #21262d !important;
-    color: #58a6ff !important;
-    border-color: #30363d !important;
-}
-
-/* ── Chat messages ── */
+/* ═══════ CHAT MESSAGES ═══════ */
 [data-testid="stChatMessage"] {
-    border-radius: 12px !important;
-    padding: 1rem 1.25rem !important;
-    margin-bottom: 8px !important;
-    border: 1px solid transparent !important;
+    border-radius: 16px !important;
+    padding: 1.1rem 1.4rem !important;
+    margin-bottom: 12px !important;
+    animation: fadeUp 0.2s ease-out !important;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-/* User */
+/* User — light blue */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-    background: #1c2128 !important;
-    border-color: #30363d !important;
+    background: #EFF6FF !important;
+    border: 1px solid #BFDBFE !important;
+    box-shadow: 0 1px 4px rgba(59,130,246,0.06) !important;
 }
 
-/* Assistant */
+/* Assistant — white */
 [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
-    background: #0d1117 !important;
-    border-color: transparent !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
 }
 
-/* Message text */
+/* Text */
 [data-testid="stChatMessage"] p,
 [data-testid="stChatMessage"] li {
-    color: #c9d1d9 !important;
-    font-size: 0.92rem !important;
-    line-height: 1.75 !important;
+    color: #1E293B !important;
+    font-size: 0.93rem !important;
+    line-height: 1.8 !important;
 }
 [data-testid="stChatMessage"] h1,
 [data-testid="stChatMessage"] h2,
 [data-testid="stChatMessage"] h3 {
-    color: #e6edf3 !important;
-    font-weight: 600 !important;
-    margin: 1rem 0 0.4rem !important;
+    color: #1D4ED8 !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    margin: 1rem 0 0.3rem !important;
 }
-[data-testid="stChatMessage"] strong { color: #e6edf3 !important; font-weight: 600 !important; }
+[data-testid="stChatMessage"] strong { color: #0F172A !important; font-weight: 600 !important; }
 
 /* Inline code */
 [data-testid="stChatMessage"] code {
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 0.82em !important;
-    background: #161b22 !important;
-    color: #79c0ff !important;
-    border: 1px solid #30363d !important;
-    border-radius: 5px !important;
-    padding: 2px 6px !important;
+    background: #EFF6FF !important;
+    color: #1D4ED8 !important;
+    border: 1px solid #BFDBFE !important;
+    border-radius: 6px !important;
+    padding: 2px 7px !important;
 }
 
 /* Code blocks */
 [data-testid="stChatMessage"] pre {
-    background: #161b22 !important;
-    border-radius: 10px !important;
-    padding: 1rem 1.1rem !important;
+    background: #1E293B !important;
+    border-radius: 12px !important;
+    padding: 1.1rem 1.25rem !important;
     margin: 0.75rem 0 !important;
-    border: 1px solid #30363d !important;
+    border: none !important;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important;
 }
 [data-testid="stChatMessage"] pre code {
     background: transparent !important;
-    color: #e6edf3 !important;
+    color: #93C5FD !important;
     border: none !important;
     padding: 0 !important;
-    font-size: 0.84rem !important;
-    line-height: 1.6 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.65 !important;
 }
 
-/* ── Chat input ── */
+/* ═══════ CHAT INPUT ═══════ */
 [data-testid="stChatInput"] {
-    background: #161b22 !important;
-    border: 1px solid #30363d !important;
-    border-radius: 12px !important;
-    box-shadow: 0 0 0 0 transparent !important;
-    transition: border-color 0.2s !important;
+    background: #FFFFFF !important;
+    border: 2px solid #BFDBFE !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.06) !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+    overflow: hidden !important;
 }
 [data-testid="stChatInput"]:focus-within {
-    border-color: #58a6ff !important;
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 4px rgba(59,130,246,0.1), 0 4px 16px rgba(59,130,246,0.06) !important;
 }
 [data-testid="stChatInput"] > div,
 [data-testid="stChatInput"] > div > div,
+[data-testid="stChatInput"] > div > div > div,
 [data-testid="stChatInput"] [data-baseweb],
 [data-testid="stChatInput"] [class*="InputContainer"],
-[data-testid="stChatInput"] [class*="Root"] {
+[data-testid="stChatInput"] [class*="Root"],
+[data-testid="stChatInput"] [class*="isFocused"] {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
@@ -246,312 +235,245 @@ section[data-testid="stSidebar"] [data-testid="stSelectbox"] > div > div:hover {
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important;
-    color: #c9d1d9 !important;
-    -webkit-text-fill-color: #c9d1d9 !important;
-    caret-color: #58a6ff !important;
+    background-color: transparent !important;
+    color: #0F172A !important;
+    -webkit-text-fill-color: #0F172A !important;
+    caret-color: #3B82F6 !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 0.92rem !important;
+    font-size: 0.93rem !important;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    padding: 0.75rem 1rem !important;
+    padding: 0.85rem 1rem !important;
 }
 [data-testid="stChatInput"] textarea::placeholder {
-    color: #484f58 !important;
-    -webkit-text-fill-color: #484f58 !important;
+    color: #94A3B8 !important;
+    -webkit-text-fill-color: #94A3B8 !important;
 }
 [data-testid="stChatInput"] button {
-    background: #238636 !important;
+    background: #3B82F6 !important;
     border: none !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     margin: 6px 8px 6px 0 !important;
-    min-width: 36px !important;
-    height: 36px !important;
-    transition: background 0.15s !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    transition: background 0.15s, transform 0.12s !important;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.3) !important;
 }
-[data-testid="stChatInput"] button:hover { background: #2ea043 !important; }
-[data-testid="stChatInput"] button svg { fill: #ffffff !important; }
+[data-testid="stChatInput"] button:hover {
+    background: #2563EB !important;
+    transform: scale(1.06) !important;
+}
+[data-testid="stChatInput"] button svg { fill: #FFFFFF !important; }
 
-/* ── Suggestion chips ── */
-.chip-btn > button {
-    background: #161b22 !important;
-    color: #8b949e !important;
-    border: 1px solid #30363d !important;
-    border-radius: 20px !important;
-    font-size: 0.8rem !important;
+/* ═══════ EXAMPLE PROMPT CARDS ═══════ */
+.ex-card .stButton > button {
+    background: #FFFFFF !important;
+    color: #475569 !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 12px !important;
+    font-size: 0.82rem !important;
     font-weight: 500 !important;
-    padding: 0.4rem 0.9rem !important;
+    padding: 0.7rem 1rem !important;
     width: 100% !important;
-    transition: all 0.15s !important;
+    text-align: left !important;
+    line-height: 1.4 !important;
+    transition: all 0.18s ease !important;
     font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
 }
-.chip-btn > button:hover {
-    background: #21262d !important;
-    color: #c9d1d9 !important;
-    border-color: #58a6ff !important;
+.ex-card .stButton > button:hover {
+    background: #EFF6FF !important;
+    border-color: #3B82F6 !important;
+    color: #1D4ED8 !important;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.12) !important;
+    transform: translateY(-2px) !important;
 }
 
-/* ── Divider ── */
-hr { border: none !important; border-top: 1px solid #21262d !important; margin: 0.6rem 0 !important; }
+/* ═══════ METRICS ═══════ */
+[data-testid="stMetric"] {
+    background: #EFF6FF !important;
+    border: 1px solid #DBEAFE !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 0.85rem !important;
+}
+[data-testid="stMetricValue"] {
+    color: #2563EB !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 700 !important;
+    font-size: 1.2rem !important;
+}
+[data-testid="stMetricLabel"] p {
+    color: #94A3B8 !important;
+    font-size: 0.68rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; }
+/* Progress bar */
+[data-testid="stProgressBar"] > div > div {
+    background: #DBEAFE !important;
+    border-radius: 999px !important;
+    height: 5px !important;
+}
+[data-testid="stProgressBar"] > div > div > div {
+    background: linear-gradient(90deg, #3B82F6, #60A5FA) !important;
+    border-radius: 999px !important;
+}
+
+/* Misc */
+hr { border: none !important; border-top: 1px solid #DBEAFE !important; margin: 0.75rem 0 !important; }
+[data-testid="stCaptionContainer"] p { color: #94A3B8 !important; font-size: 0.72rem !important; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #30363d; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #58a6ff; }
+::-webkit-scrollbar-thumb { background: #BFDBFE; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
 </style>
 """, unsafe_allow_html=True)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# SESSION STATE INITIALISATION
-# ──────────────────────────────────────────────────────────────────────────────
-# chat_sessions: list of {"id": int, "title": str, "messages": list}
-if "chat_sessions" not in st.session_state:
-    st.session_state.chat_sessions = []
 
-# active_session_idx: index into chat_sessions, or None for a blank new chat
-if "active_session_idx" not in st.session_state:
-    st.session_state.active_session_idx = None
-
-# model / temperature — persist across reruns
-if "model_choice" not in st.session_state:
-    st.session_state.model_choice = "qwen2.5:0.5b"
-if "temperature" not in st.session_state:
-    st.session_state.temperature = 0.2
-
-# ──────────────────────────────────────────────────────────────────────────────
-# HELPERS
-# ──────────────────────────────────────────────────────────────────────────────
-def _active_messages() -> list:
-    idx = st.session_state.active_session_idx
-    if idx is not None and 0 <= idx < len(st.session_state.chat_sessions):
-        return st.session_state.chat_sessions[idx]["messages"]
-    return []
-
-
-def _get_or_create_service() -> "ChatService":
-    """Return the ChatService for the current model, creating one if needed."""
-    cache_key = f"svc_{st.session_state.model_choice}"
-    if cache_key not in st.session_state:
-        st.session_state[cache_key] = ChatService(
-            model=st.session_state.model_choice,
-            temperature=st.session_state.temperature,
-        )
-    svc: ChatService = st.session_state[cache_key]
-    svc.temperature = st.session_state.temperature
-    # Sync service history with the current session's displayed messages so
-    # multi-turn context is always correct after a rerun.
-    idx = st.session_state.active_session_idx
-    if idx is not None and 0 <= idx < len(st.session_state.chat_sessions):
-        svc.history = list(st.session_state.chat_sessions[idx]["messages"])
-    else:
-        svc.history = []
-    return svc
-
-
-def _title_from_message(text: str) -> str:
-    """Generate a short session title from the first user message."""
-    stripped = text.strip().replace("\n", " ")
-    return stripped[:48] + "…" if len(stripped) > 48 else stripped
-
-
-def _start_new_chat() -> None:
-    st.session_state.active_session_idx = None
-
-
-def _load_session(idx: int) -> None:
-    st.session_state.active_session_idx = idx
-
-
-def _save_message(role: str, content: str) -> None:
-    """Persist a message into the current (or newly-created) session."""
-    idx = st.session_state.active_session_idx
-    sessions = st.session_state.chat_sessions
-
-    if idx is None or idx >= len(sessions):
-        # First message in a brand-new session — auto-create it
-        title = _title_from_message(content) if role == "user" else "New chat"
-        sessions.insert(0, {"id": len(sessions), "title": title, "messages": []})
-        st.session_state.active_session_idx = 0
-        idx = 0
-
-    sessions[idx]["messages"].append({"role": role, "content": content})
-
-
-def _get_token_counts() -> tuple[int, int]:
-    """Return (total_input_tokens, total_output_tokens) for the active model."""
-    cache_key = f"svc_{st.session_state.model_choice}"
-    if cache_key in st.session_state:
-        svc: ChatService = st.session_state[cache_key]
-        return svc.total_input_tokens, svc.total_output_tokens
-    return 0, 0
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# SIDEBAR
-# ──────────────────────────────────────────────────────────────────────────────
+# ═══════ SIDEBAR ═══════
 with st.sidebar:
-    # Logo / brand
+    # Logo
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;padding:0 0 0.75rem">
-        <div style="width:34px;height:34px;background:linear-gradient(135deg,#1f6feb,#58a6ff);
-                    border-radius:10px;display:flex;align-items:center;justify-content:center;
-                    font-size:1rem;flex-shrink:0">🔍</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:0 0 1rem">
+        <div style="width:38px;height:38px;background:linear-gradient(135deg,#3B82F6,#60A5FA);
+                    border-radius:12px;display:flex;align-items:center;justify-content:center;
+                    font-size:1.15rem;flex-shrink:0;box-shadow:0 3px 10px rgba(59,130,246,0.3)">🔍</div>
         <div>
-            <div style="font-weight:700;font-size:1rem;color:#e6edf3;letter-spacing:-0.02em">CodeLens</div>
-            <div style="font-size:0.68rem;color:#484f58;margin-top:1px">AI Code Explainer</div>
+            <div style="font-weight:800;font-size:1.05rem;color:#0F172A;letter-spacing:-0.02em">CodeLens</div>
+            <div style="font-size:0.72rem;color:#94A3B8;margin-top:1px">AI Code Explainer</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # New Chat button
-    st.markdown('<div class="new-chat-btn">', unsafe_allow_html=True)
-    if st.button("＋  New Chat", key="new_chat_btn", use_container_width=True):
-        _start_new_chat()
+    st.markdown("---")
+
+    # Model
+    st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0 0 6px">Model</p>', unsafe_allow_html=True)
+    model_choice = st.selectbox("Model", ["qwen2.5:0.5b", "phi3:latest"], index=0, label_visibility="collapsed")
+
+    # Temperature
+    st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0.75rem 0 6px">Temperature</p>', unsafe_allow_html=True)
+    temperature = st.slider("Temp", 0.0, 1.0, 0.2, 0.05, label_visibility="collapsed")
+    temp_desc = "precise" if temperature < 0.4 else "balanced" if temperature < 0.7 else "creative"
+    st.markdown(f'<p style="font-size:0.7rem;color:#94A3B8;text-align:right;margin-top:-6px">{temperature:.2f} · {temp_desc}</p>', unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # Clear chat
+    if st.button("🗑️  Clear conversation", use_container_width=True):
+        for k in ["service", "messages", "_model"]:
+            st.session_state.pop(k, None)
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # Chat history
-    sessions = st.session_state.chat_sessions
-    if sessions:
-        st.markdown('<p style="font-size:0.68rem;font-weight:600;text-transform:uppercase;'
-                    'letter-spacing:0.08em;color:#484f58;margin:0 0 6px">History</p>',
-                    unsafe_allow_html=True)
-        for i, sess in enumerate(sessions):
-            is_active = (st.session_state.active_session_idx == i)
-            css_class = "hist-item-active" if is_active else "hist-item"
-            st.markdown(f'<div class="{css_class}">', unsafe_allow_html=True)
-            if st.button(sess["title"], key=f"hist_{i}", use_container_width=True):
-                _load_session(i)
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown("---")
-
-    # Model selector
-    st.markdown('<p style="font-size:0.68rem;font-weight:600;text-transform:uppercase;'
-                'letter-spacing:0.08em;color:#484f58;margin:0 0 5px">Model</p>',
-                unsafe_allow_html=True)
-    model_choice = st.selectbox(
-        "Model",
-        ["qwen2.5:0.5b", "phi3:latest"],
-        index=0 if st.session_state.model_choice == "qwen2.5:0.5b" else 1,
-        label_visibility="collapsed",
-        key="model_select",
-    )
-    st.session_state.model_choice = model_choice
-
-    # Temperature slider
-    st.markdown('<p style="font-size:0.68rem;font-weight:600;text-transform:uppercase;'
-                'letter-spacing:0.08em;color:#484f58;margin:0.75rem 0 5px">Temperature</p>',
-                unsafe_allow_html=True)
-    temperature = st.slider("Temp", 0.0, 1.0, st.session_state.temperature, 0.05,
-                             label_visibility="collapsed", key="temp_slider")
-    st.session_state.temperature = temperature
-    _desc = "precise" if temperature < 0.4 else "balanced" if temperature < 0.7 else "creative"
-    st.markdown(f'<p style="font-size:0.7rem;color:#484f58;text-align:right;margin-top:-4px">'
-                f'{temperature:.2f} · {_desc}</p>', unsafe_allow_html=True)
-
-    # ── Token Usage (Requirement: token usage visible) ────────────────────────
-    tok_in, tok_out = _get_token_counts()
-    st.markdown("---")
-    st.markdown('<p style="font-size:0.68rem;font-weight:600;text-transform:uppercase;'
-                'letter-spacing:0.08em;color:#484f58;margin:0 0 6px">Token Usage</p>',
-                unsafe_allow_html=True)
-    if tok_in + tok_out == 0:
-        st.markdown(
-            '<p style="font-size:0.75rem;color:#484f58;margin:0">No tokens yet</p>',
-            unsafe_allow_html=True)
-    else:
-        st.markdown(
-            f'<p style="font-size:0.78rem;color:#8b949e;margin:2px 0">'
-            f'↑&nbsp;<b style="color:#c9d1d9">{tok_in:,}</b>&nbsp;prompt</p>'
-            f'<p style="font-size:0.78rem;color:#8b949e;margin:2px 0">'
-            f'↓&nbsp;<b style="color:#c9d1d9">{tok_out:,}</b>&nbsp;completion</p>'
-            f'<p style="font-size:0.78rem;color:#8b949e;margin:2px 0">'
-            f'Σ&nbsp;<b style="color:#c9d1d9">{tok_in + tok_out:,}</b>&nbsp;total</p>'
-            f'<p style="font-size:0.7rem;color:#484f58;margin:4px 0 0">'
-            f'local model · $0.00 cost</p>',
-            unsafe_allow_html=True)
-
-# ──────────────────────────────────────────────────────────────────────────────
-# MAIN — header
-# ──────────────────────────────────────────────────────────────────────────────
-messages = _active_messages()
-
-example_prompt = None  # may be set by a chip click below
-
-if not messages:
-    # ── Empty state ───────────────────────────────────────────────────────────
+    # How to use
+    st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0 0 8px">How to use</p>', unsafe_allow_html=True)
     st.markdown("""
-    <div style="text-align:center;padding:3rem 0 2rem">
-        <div style="font-size:2.5rem;margin-bottom:0.5rem">🔍</div>
-        <h1 style="font-size:1.75rem;font-weight:700;color:#e6edf3;
-                   letter-spacing:-0.03em;margin:0 0 0.4rem">CodeLens</h1>
-        <p style="font-size:1rem;color:#8b949e;margin:0 0 0.25rem;font-weight:500">
-            Understand code instantly.
+    <div style="font-size:0.8rem;color:#64748B;line-height:2">
+        1. Paste any code snippet<br>
+        2. Hit <b style="color:#3B82F6">Enter</b> or click send<br>
+        3. Ask follow-up questions<br>
+        4. Use <b style="color:#3B82F6">Clear</b> to start fresh
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ═══════ SESSION STATE ═══════
+if "service" not in st.session_state or st.session_state.get("_model") != model_choice:
+    st.session_state.service = ChatService(model=model_choice, temperature=temperature)
+    st.session_state._model = model_choice
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+service: ChatService = st.session_state.service
+service.temperature = temperature
+
+
+# ═══════ HEADER ═══════
+st.markdown("""
+<div style="text-align:center;padding:0.5rem 0 0.5rem">
+    <h1 style="font-size:1.5rem;font-weight:800;color:#0F172A;margin:0;letter-spacing:-0.04em">
+        🔍 CodeLens
+    </h1>
+    <p style="font-size:0.88rem;color:#94A3B8;margin:0.2rem 0 0;font-weight:400">
+        Understand code, one explanation at a time.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("---")
+
+
+# ═══════ EMPTY STATE — hero + example buttons ═══════
+EXAMPLES = [
+    ("🐍", "Explain this Python function"),
+    ("🐛", "Find bugs in my JavaScript"),
+    ("🗄️", "Explain this SQL query"),
+    ("🐚", "What does this Bash script do?"),
+    ("🔁", "Help me understand recursion"),
+]
+
+example_prompt = None
+
+if not st.session_state.messages:
+    st.markdown("""
+    <div style="text-align:center;padding:1.5rem 0 1.25rem">
+        <p style="font-size:1.1rem;font-weight:600;color:#334155;margin:0 0 0.3rem">
+            Paste any code snippet and get a clear explanation.
         </p>
-        <p style="font-size:0.85rem;color:#484f58;margin:0">
-            Paste Python, JavaScript, SQL, Bash, or any code snippet and get a clear explanation.
+        <p style="font-size:0.85rem;color:#94A3B8;margin:0">
+            Or try one of these examples:
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Suggestion chips
-    CHIPS = [
-        ("💡", "Explain this code"),
-        ("🐛", "Find bugs"),
-        ("📋", "Explain line by line"),
-        ("✨", "Improve this code"),
-    ]
-    cols = st.columns(len(CHIPS))
-    for i, (icon, label) in enumerate(CHIPS):
+    cols = st.columns(len(EXAMPLES))
+    for i, (icon, label) in enumerate(EXAMPLES):
         with cols[i]:
-            st.markdown('<div class="chip-btn">', unsafe_allow_html=True)
-            if st.button(f"{icon} {label}", key=f"chip_{i}", use_container_width=True):
+            st.markdown('<div class="ex-card">', unsafe_allow_html=True)
+            if st.button(f"{icon} {label}", key=f"ex_{i}", use_container_width=True):
                 example_prompt = label
             st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div style="height:1rem"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="height:1.5rem"></div>', unsafe_allow_html=True)
 
-else:
-    # ── Active conversation — show title bar ──────────────────────────────────
-    idx = st.session_state.active_session_idx
-    if idx is not None and 0 <= idx < len(st.session_state.chat_sessions):
-        title = st.session_state.chat_sessions[idx]["title"]
-        st.markdown(f'<p style="font-size:0.75rem;color:#484f58;margin:0 0 0.5rem;'
-                    f'text-align:center">{title}</p>', unsafe_allow_html=True)
 
-# ──────────────────────────────────────────────────────────────────────────────
-# RENDER EXISTING MESSAGES
-# ──────────────────────────────────────────────────────────────────────────────
-for msg in messages:
+# ═══════ CHAT HISTORY ═══════
+for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# ──────────────────────────────────────────────────────────────────────────────
-# HANDLE INPUT
-# ──────────────────────────────────────────────────────────────────────────────
+
+# ═══════ HANDLE INPUT ═══════
 def handle(user_text: str) -> None:
-    """Send a user message, stream the reply, and persist both."""
-    _save_message("user", user_text)
+    st.session_state.messages.append({"role": "user", "content": user_text})
     with st.chat_message("user"):
         st.markdown(user_text)
-
-    service = _get_or_create_service()
     with st.chat_message("assistant"):
         reply = st.write_stream(service.stream(user_text))
+    st.session_state.messages.append({"role": "assistant", "content": reply})
 
-    _save_message("assistant", str(reply))
 
+if example_prompt:
+    handle(example_prompt)
+    st.rerun()
 
-# Chat input (always visible at bottom)
 if prompt := st.chat_input("Paste code or ask a question…"):
     handle(prompt)
     st.rerun()
 
-# Suggestion chip click (only possible on the empty-state screen)
-if example_prompt:
-    handle(example_prompt)
-    st.rerun()
+
+# ═══════ TOKEN USAGE (sidebar bottom) ═══════
+with st.sidebar:
+    st.markdown("---")
+    st.markdown('<p style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#94A3B8;margin:0 0 8px">Token Usage</p>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    c1.metric("Input", f"{service.total_input_tokens:,}")
+    c2.metric("Output", f"{service.total_output_tokens:,}")
+    total = service.total_input_tokens + service.total_output_tokens
+    if total > 0:
+        st.progress(min(total / 10_000, 1.0))
+    st.caption(f"{total:,} tokens · local · free")
